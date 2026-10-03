@@ -1,19 +1,16 @@
-use super::orderbook::{Order, OrderBook, Price};
+use super::orderbook::{Order, OrderBook};
+use rust_decimal::prelude::*;
 use std::collections::HashMap;
 
 #[derive(Debug, Eq, PartialEq, Hash, Clone)]
 pub struct TradingPair {
-    base: String,
-    quote: String,
+    Base: String,
+    Quote: String,
 }
 
 impl TradingPair {
-    pub fn new(quote: String, base: String) -> Self {
-        TradingPair { base, quote }
-    }
-
-    pub fn to_string(self) -> String {
-        return format!("{}_{}", self.base, self.quote);
+    pub fn new(Base: String, Quote: String) -> Self {
+        TradingPair { Base, Quote }
     }
 }
 
@@ -29,29 +26,23 @@ impl MatchingEngine {
         }
     }
 
-    pub fn add_new_market(&mut self, pair: TradingPair) {
-        self.orderbooks.insert(pair.clone(), OrderBook::new());
-        println!("opening orderbook for market {:?}", pair);
+    pub fn add_new_market(&mut self, trading_pair: TradingPair) {
+        self.orderbooks.insert(trading_pair, OrderBook::new());
     }
 
-    pub fn place_new_limit_order(
+    pub fn add_limit_order(
         &mut self,
-        pair: TradingPair,
-        price: f64,
         order: Order,
+        price: Decimal,
+        trading_pair: TradingPair,
     ) -> Result<(), String> {
-        match self.orderbooks.get_mut(&pair) {
+        match self.orderbooks.get_mut(&trading_pair) {
             Some(orderbook) => {
                 orderbook.add_order(price, order);
                 Ok(())
             }
-            None => {
-                println!(" there is no order for orderbook");
-                Err(format!(
-                    "the orderbook for the given trading pair ({}) does not exist",
-                    pair.to_string()
-                ))
-            }
+
+            None => Err(format!("the orderbook is emppty for given pair")),
         }
     }
 }
