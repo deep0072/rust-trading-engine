@@ -8,14 +8,14 @@ struct MatchOrder {
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Order {
-    size: f64,
+    size: Decimal,
     time_stamp: u64,
     bid: bool,
     id: u64,
 }
 
 impl Order {
-    pub fn new(size: f64, time_stamp: u64, bid: bool, id: u64) -> Self {
+    pub fn new(size: Decimal, time_stamp: u64, bid: bool, id: u64) -> Self {
         Self {
             size,
             time_stamp,
@@ -52,15 +52,16 @@ impl Limit {
     }
 }
 
-struct OrderBook {
-    asks: Vec<Limit>,
-    bids: Vec<Limit>,
+#[derive(Debug)]
+pub struct OrderBook {
+    pub asks: Vec<Limit>,
+    pub bids: Vec<Limit>,
     asks_limit: HashMap<Decimal, Limit>,
     bids_limit: HashMap<Decimal, Limit>,
 }
 
 impl OrderBook {
-    fn new() -> Self {
+    pub fn new() -> Self {
         OrderBook {
             asks: Vec::new(),
             bids: Vec::new(),
@@ -69,18 +70,42 @@ impl OrderBook {
         }
     }
 
-    fn place_order(&mut self) {} // this is used to buy or sell the order when it matched
-    fn add_order(&mut self, price: Decimal, order: Order) {
-        let mut limit = Limit::new(price);
-
-        if order.bid {
-            limit.add_order(order);
-            self.bids.push(limit.clone());
-            self.bids_limit.insert(price, limit);
+    pub fn place_order(&mut self, price: Decimal, order: Order) {
+        if order.size > dec!(0.0) {
+            self.add_order(price, order);
+        }
+    } // this is used to buy or sell the order when it matched
+    pub fn add_order(&mut self, price: Decimal, order: Order) {
+        let mut limit = if order.bid {
+            match self.bids_limit.get(&price) {
+                Some(limit) => limit.clone(),
+                None => Limit::new(price),
+            }
         } else {
-            limit.add_order(order);
-            self.asks.push(limit.clone());
-            self.asks_limit.insert(price, limit);
+            match self.asks_limit.get(&price) {
+                Some(limit) => limit.clone(),
+                None => Limit::new(price),
+            }
+        };
+        //
+        if limit.orders.len() == 0 {
+            if order.bid {
+                limit.add_order(order);
+                self.bids.push(limit.clone());
+                self.bids_limit.insert(price, limit);
+            } else {
+                limit.add_order(order);
+                self.asks.push(limit.clone());
+
+                self.asks_limit.insert(price, limit);
+            }
         }
     } // if match not find then order will sits in orderbook
+    // limit.add_order(order);
+    // self.bids.push(limit.clone());
+    // self.bids_limit.insert(price, limit);
 }
+
+// limit.add_order(order);
+// self.asks.push(limit.clone());
+// self.asks_limit.insert(price, limit);
